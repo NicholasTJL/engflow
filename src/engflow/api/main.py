@@ -12,7 +12,7 @@ from __future__ import annotations
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from pydantic import BaseModel
 
 from engflow import __version__
@@ -43,6 +43,12 @@ def handle_schema_error(_request: Request, exc: RequestValidationError) -> JSONR
     ]
     body = ValidateResponse(valid=False, error="; ".join(messages))
     return JSONResponse(status_code=200, content=body.model_dump())
+
+
+@app.get("/", include_in_schema=False)
+def root() -> RedirectResponse:
+    """This is a JSON API with no landing page -- send visitors to the interactive docs."""
+    return RedirectResponse(url="/docs")
 
 
 @app.get("/health")

@@ -12,6 +12,13 @@ def test_health() -> None:
     assert response.json()["status"] == "ok"
 
 
+def test_root_redirects_to_docs() -> None:
+    response = client.get("/", follow_redirects=False)
+
+    assert response.status_code in (302, 307)
+    assert response.headers["location"] == "/docs"
+
+
 def test_validate_valid_workflow_returns_order() -> None:
     payload = {
         "name": "demo",
