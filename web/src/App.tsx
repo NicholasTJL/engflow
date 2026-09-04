@@ -15,6 +15,7 @@ import yaml from "js-yaml";
 import { validateWorkflow } from "./api";
 import Inspector from "./components/Inspector";
 import StepNode from "./components/StepNode";
+import { TEMPLATES } from "./templates";
 import type { StepData } from "./types";
 
 const nodeTypes = { step: StepNode };
@@ -124,6 +125,19 @@ export default function App() {
     }
   }, [toPayload]);
 
+  const handleLoadTemplate = useCallback(
+    (templateId: string) => {
+      const template = TEMPLATES.find((candidate) => candidate.id === templateId);
+      if (!template) return;
+      setNodes(template.nodes.map((node) => ({ ...node, data: { ...node.data } })));
+      setEdges(template.edges.map((edge) => ({ ...edge })));
+      setWorkflowName(template.workflowName);
+      setSelectedId(null);
+      setResult(null);
+    },
+    [setNodes, setEdges],
+  );
+
   const handleExportYaml = useCallback(() => {
     const text = yaml.dump(toPayload(), { skipInvalid: true });
     const blob = new Blob([text], { type: "text/yaml" });
@@ -163,6 +177,23 @@ export default function App() {
         <button onClick={addStep}>Add step</button>
         <button onClick={handleValidate}>Validate &amp; preview order</button>
         <button onClick={handleExportYaml}>Export YAML</button>
+        <select
+          aria-label="Load template"
+          defaultValue=""
+          onChange={(event) => {
+            if (event.target.value) handleLoadTemplate(event.target.value);
+            event.target.value = "";
+          }}
+        >
+          <option value="" disabled>
+            Load template…
+          </option>
+          {TEMPLATES.map((template) => (
+            <option key={template.id} value={template.id} title={template.description}>
+              {template.label}
+            </option>
+          ))}
+        </select>
         <div className="spacer" />
       </header>
       <div className="body">

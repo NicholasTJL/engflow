@@ -6,8 +6,9 @@ the real `engflow` schema and dependency-graph logic — no mocked backend.
 **What "Validate & preview order" actually does**: it sends the current graph to the
 `engflow` API, which runs it through the same `WorkflowDefinition` schema and
 `topological_order()` function the CLI uses. It reports whether the workflow is valid and, if
-so, the computed execution order. It does not execute the steps — `engflow run` isn't built yet
-(see the root [docs/vision.md](../docs/vision.md)).
+so, the computed execution order. The studio itself doesn't execute steps yet (there's no
+`/run` endpoint) — `engflow run` is real now, but only via the CLI; export the workflow as
+YAML and run it there.
 
 ## Run it
 
@@ -36,6 +37,10 @@ with a `VITE_API_BASE` environment variable if you're running the API elsewhere.
   `timeout`). Click a node to edit its fields in the side panel.
 - An edge from A to B means B depends on A — drag from a node's bottom handle to another's top
   handle to connect them.
+- **Load template** loads one of four example workflows onto the canvas (`simple chain`,
+  `parameter sweep` — matches `examples/parameter_sweep` in the repo and actually runs via
+  `engflow run`, `diamond dependency`, `ML training pipeline`) so a new visitor has something
+  concrete to look at instead of a blank canvas. See `src/templates.ts`.
 - **Export YAML** downloads the current graph in the exact format `engflow validate` accepts, so
   you can round-trip between the visual builder and the CLI.
 
