@@ -1,5 +1,6 @@
 from pathlib import Path
 
+import pytest
 from typer.testing import CliRunner
 
 from engflow.cli.main import app
@@ -122,3 +123,91 @@ def test_status_missing_run_fails(tmp_path: Path) -> None:
     result = runner.invoke(app, ["status", str(tmp_path / "does-not-exist")])
 
     assert result.exit_code == 1
+
+
+def test_run_accepts_max_concurrency_option(tmp_path: Path) -> None:
+    workflow_file = _write(tmp_path, VALID_WORKFLOW)
+    run_dir = tmp_path / "runs"
+
+    result = runner.invoke(
+        app, ["run", str(workflow_file), "--run-dir", str(run_dir), "--max-concurrency", "2"]
+    )
+
+    assert result.exit_code == 0
+    assert "Run succeeded" in result.output
+
+
+RESUME_WORKFLOW_STEP_B_FAILS = """
+name: demo
+steps:
+  - id: a
+    uses: command
+    command: echo run >> counter.txt
+  - id: b
+    uses: command
+    command: exit 1
+    depends_on: [a]
+"""
+
+RESUME_WORKFLOW_STEP_B_SUCCEEDS = """
+name: demo
+steps:
+  - id: a
+    uses: command
+    command: echo run >> counter.txt
+  - id: b
+    uses: command
+    command: echo ok
+    depends_on: [a]
+"""
+
+
+def test_resume_skips_previously_succeeded_step(tmp_path: Path) -> None:
+    workflow_file = _write(tmp_path, RESUME_WORKFLOW_STEP_B_FAILS)
+    run_dir = tmp_path / "runs"
+
+    first = runner.invoke(app, ["run", str(workflow_file), "--run-dir", str(run_dir)])
+    assert first.exit_code == 1
+    (this_run,) = run_dir.iterdir()
+    counter_path = this_run / "steps" / "a" / "counter.txt"
+    assert counter_path.read_text().count("run") == 1
+
+    workflow_file.write_text(RESUME_WORKFLOW_STEP_B_SUCCEEDS)
+    second = runner.invoke(app, ["run", str(workflow_file), "--resume", str(this_run)])
+
+    assert second.exit_code == 0
+    assert "Resuming" in second.output
+    assert "Run succeeded" in second.output
+    # 'a' was not re-run: still exactly one recorded execution.
+    assert counter_path.read_text().count("run") == 1
+
+
+def test_resume_missing_run_dir_fails(tmp_path: Path) -> None:
+    workflow_file = _write(tmp_path, VALID_WORKFLOW)
+
+    result = runner.invoke(app, ["run", str(workflow_file), "--resume", str(tmp_path / "nope")])
+
+    assert result.exit_code == 1
+
+
+def test_run_shows_attempt_count_when_step_retried(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr("engflow.core.executor.time.sleep", lambda _seconds: None)
+    workflow_file = _write(
+        tmp_path,
+        """
+name: demo
+steps:
+  - id: flaky
+    uses: python
+    entrypoint: tests.fixtures.sample_steps:fail_twice_then_succeed
+    retries: 2
+""",
+    )
+    run_dir = tmp_path / "runs"
+
+    result = runner.invoke(app, ["run", str(workflow_file), "--run-dir", str(run_dir)])
+
+    assert result.exit_code == 0
+    assert "attempt 3" in result.output

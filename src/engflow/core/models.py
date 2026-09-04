@@ -17,7 +17,8 @@ class StepDefinition(BaseModel):
     template: str | None = None
     depends_on: list[str] = Field(default_factory=list)
     timeout: int | None = None
-    retries: int = 0
+    retries: int = Field(default=0, ge=0)
+    env: dict[str, str] = Field(default_factory=dict)
 
     @field_validator("id")
     @classmethod

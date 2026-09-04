@@ -46,7 +46,15 @@ ruled out permanently:
 
 ## Current status
 
-Schema, parser, graph builder, and a sequential execution engine (`python` and `command`
-runners, run state persistence, `engflow run`/`status`) are in place. Remaining v0.1.0 scope:
-retries, timeouts, resume, and concurrent execution (v0.2.0), plus the plugin runner protocol
-and Docker/HTTP runners (v0.3.0).
+Schema, parser, graph builder, and a concurrent execution engine (`python` and `command`
+runners, run state persistence, `engflow run`/`status`) are in place. v0.2.0 landed retries with
+exponential backoff, timeout enforcement for both runners (with real process-tree termination
+for `command` steps), concurrent execution of independent steps behind `--max-concurrency`,
+per-step environment variables with best-effort secret masking in logs, and resume (skip steps
+that already succeeded in a given run directory).
+
+Not yet built: SQLite run history and content-based caching (a step re-run only because its run
+directory is new, even though its inputs are unchanged, still re-executes today) -- both
+deferred, not scoped for a specific release yet. Also deferred: the plugin runner protocol,
+Docker/HTTP runners, human-approval steps, the web dashboard, event hooks, and JSON/HTML run
+reports (v0.3.0).

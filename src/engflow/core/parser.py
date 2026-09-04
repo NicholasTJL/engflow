@@ -20,7 +20,7 @@ def load_workflow(path: str | Path) -> WorkflowDefinition:
         raise WorkflowParseError(f"workflow file not found: {path}")
 
     try:
-        raw = yaml.safe_load(path.read_text())
+        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
     except yaml.YAMLError as exc:
         raise WorkflowParseError(f"invalid YAML in {path}: {exc}") from exc
 

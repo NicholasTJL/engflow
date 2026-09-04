@@ -7,7 +7,7 @@ from typing import Annotated
 
 import typer
 
-from engflow.core.executor import new_run_id, run_workflow
+from engflow.core.executor import DEFAULT_MAX_CONCURRENCY, new_run_id, run_workflow
 from engflow.core.graph import GraphError, topological_order
 from engflow.core.parser import WorkflowParseError, load_workflow
 from engflow.core.state import RunState, StepStatus
@@ -52,22 +52,55 @@ def run(
     run_dir: Annotated[
         Path, typer.Option("--run-dir", help="Directory to store run history under.")
     ] = Path("runs"),
+    max_concurrency: Annotated[
+        int,
+        typer.Option(
+            "--max-concurrency", help="Maximum number of steps to run at the same time."
+        ),
+    ] = DEFAULT_MAX_CONCURRENCY,
+    resume: Annotated[
+        Path | None,
+        typer.Option(
+            "--resume",
+            help=(
+                "A prior run directory to continue. Steps that already succeeded there are "
+                "skipped; everything else runs (or re-runs) normally, into the same directory."
+            ),
+        ),
+    ] = None,
 ) -> None:
-    """Execute a workflow, in dependency order, and report the outcome."""
+    """Execute a workflow, respecting step dependencies, and report the outcome."""
     try:
         workflow = load_workflow(workflow_file)
     except WorkflowParseError as exc:
         typer.secho(str(exc), fg=typer.colors.RED)
         raise typer.Exit(code=1) from exc
 
-    this_run_dir = run_dir / new_run_id()
-    typer.echo(f"Run: {this_run_dir}")
+    resume_state = None
+    if resume is not None:
+        try:
+            resume_state = RunState.load(resume)
+        except FileNotFoundError as exc:
+            typer.secho(str(exc), fg=typer.colors.RED)
+            raise typer.Exit(code=1) from exc
+        this_run_dir = resume
+        typer.echo(f"Resuming: {this_run_dir}")
+    else:
+        this_run_dir = run_dir / new_run_id()
+        typer.echo(f"Run: {this_run_dir}")
 
-    state = run_workflow(workflow, workflow_file, this_run_dir)
+    state = run_workflow(
+        workflow,
+        workflow_file,
+        this_run_dir,
+        max_concurrency=max_concurrency,
+        resume_state=resume_state,
+    )
 
     for step_id, result in state.steps.items():
         color = _STATUS_COLOR.get(result.status, typer.colors.WHITE)
-        typer.secho(f"  {result.status.value:>9}  {step_id}", fg=color)
+        attempt_note = f" (attempt {result.attempts})" if result.attempts > 1 else ""
+        typer.secho(f"  {result.status.value:>9}  {step_id}{attempt_note}", fg=color)
         if result.error:
             typer.secho(f"            {result.error}", fg=typer.colors.RED)
 
@@ -94,7 +127,8 @@ def status(run_dir: Path) -> None:
         typer.echo(f"Finished: {state.finished_at.isoformat()}")
     for step_id, result in state.steps.items():
         color = _STATUS_COLOR.get(result.status, typer.colors.WHITE)
-        typer.secho(f"  {result.status.value:>9}  {step_id}", fg=color)
+        attempt_note = f" (attempt {result.attempts})" if result.attempts > 1 else ""
+        typer.secho(f"  {result.status.value:>9}  {step_id}{attempt_note}", fg=color)
 
 
 if __name__ == "__main__":
