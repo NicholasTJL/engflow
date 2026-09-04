@@ -54,6 +54,15 @@ engflow graph workflow.yaml
 
 More in [examples/](examples/).
 
+## Visual builder (engflow studio)
+
+A drag-and-drop workflow builder backed by a real API — see [web/README.md](web/README.md).
+
+```bash
+pip install -e ".[api]" && uvicorn engflow.api.main:app --reload   # terminal 1
+cd web && npm install && npm run dev                                # terminal 2
+```
+
 ## Architecture
 
 ```mermaid
