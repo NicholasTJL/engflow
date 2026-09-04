@@ -1,0 +1,19 @@
+name: parameter-sweep
+
+parameters:
+  angle_of_attack: [0, 5, 10]
+
+steps:
+  - id: generate_inputs
+    uses: python
+    entrypoint: examples.parameter_sweep.steps:generate_inputs
+
+  - id: evaluate
+    uses: python
+    entrypoint: examples.parameter_sweep.steps:evaluate
+    depends_on: [generate_inputs]
+
+  - id: report
+    uses: python
+    entrypoint: examples.parameter_sweep.steps:report
+    depends_on: [evaluate]
