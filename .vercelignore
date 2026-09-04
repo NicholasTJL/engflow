@@ -1,0 +1,7 @@
+web/
+.venv/
+tests/
+examples/
+docs/
+.github/
+*.md

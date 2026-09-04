@@ -63,6 +63,29 @@ pip install -e ".[api]" && uvicorn engflow.api.main:app --reload   # terminal 1
 cd web && npm install && npm run dev                                # terminal 2
 ```
 
+### Deploying to Vercel
+
+The API and the frontend deploy as **two separate Vercel projects** from this one repo — a
+Python serverless function doesn't share a build root with a Vite app, so don't try to deploy
+both from a single project.
+
+**API project:**
+
+1. Import this repo in Vercel, set **Root Directory** to `.` (repo root).
+2. Vercel auto-detects `api/index.py` (a thin re-export of `engflow.api.main:app`) and
+   `requirements.txt` (`-e .` plus `fastapi`) — no other config needed.
+3. Note the deployed URL (e.g. `https://engflow-api.vercel.app`).
+
+**Web project:**
+
+1. Import this repo again as a *second* Vercel project, set **Root Directory** to `web`.
+2. Vercel auto-detects Vite. Add an environment variable `VITE_API_BASE` set to the API
+   project's URL from step above.
+3. Deploy.
+
+On Vercel's free (Hobby) plan, both projects deploy to a single fixed region (`iad1`, US East)
+regardless of your location — that's a plan limit, not a bug.
+
 ## Architecture
 
 ```mermaid
