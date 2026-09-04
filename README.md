@@ -99,14 +99,23 @@ flowchart TD
 
 `engflow.core.parser` validates a workflow file against the `WorkflowDefinition` schema.
 `engflow.core.graph` builds the dependency graph, detects cycles, and computes a valid
-execution order. The execution engine (`engflow.core.executor`) is not implemented yet.
+execution order. `engflow.core.executor` runs each step in that order, dispatching to a
+`python` or `command` runner (`engflow.runners`), and records a `RunState` — per-step status,
+timestamps, exit codes, and captured stdout/stderr — as `run_state.json` under the run
+directory (`runs/<run-id>/` by default). Failed steps skip their dependents; other independent
+steps still run.
+
+```bash
+engflow run examples/parameter_sweep/workflow.yaml
+engflow status runs/<run-id>
+```
 
 ## Roadmap
 
 - [x] Workflow schema and YAML parsing
 - [x] Dependency graph and cycle detection
-- [ ] Sequential execution engine (Python + command runners)
-- [ ] Retries, timeouts, resume, caching
+- [x] Sequential execution engine (Python + command runners)
+- [ ] Retries, timeouts, resume, concurrent execution, caching
 - [ ] Plugin runner protocol, Docker/HTTP runners
 
 Full roadmap: [docs/vision.md](docs/vision.md).

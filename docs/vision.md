@@ -46,5 +46,7 @@ ruled out permanently:
 
 ## Current status
 
-Foundation phase: package scaffold, schema, parser, and graph builder are in place. The
-execution engine (`engflow run`) is the next milestone.
+Schema, parser, graph builder, and a sequential execution engine (`python` and `command`
+runners, run state persistence, `engflow run`/`status`) are in place. Remaining v0.1.0 scope:
+retries, timeouts, resume, and concurrent execution (v0.2.0), plus the plugin runner protocol
+and Docker/HTTP runners (v0.3.0).
